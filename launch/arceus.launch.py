@@ -17,7 +17,7 @@ def generate_launch_description():
     robot_state_publisher_node = launch_ros.actions.Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
-        parameters=[{'robot_description': launch_ros.parameter_descriptions.ParameterValue(Command(['xacro ', LaunchConfiguration('model')]), value_type=str)}]
+        parameters=[{'robot_description': launch_ros.parameter_descriptions.ParameterValue(Command(['xacro ', LaunchConfiguration('model'), ' sim_mode:=', LaunchConfiguration('use_sim_time'), ' use_omni_wheels:=', LaunchConfiguration("use_omni_wheels")]), value_type=str)}]
     )
 
     robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
@@ -63,12 +63,16 @@ def generate_launch_description():
        executable='ekf_node',
        name='ekf_filter_node',
        output='screen',
-       parameters=[os.path.join(control_share, 'config/ekf.yaml')]
+       parameters=[os.path.join(control_share, 'config/ekf.yaml'), {'use_sim_time': LaunchConfiguration('use_sim_time')}]
     )
 
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='model', default_value=default_model_path,
-                                            description='Absolute path to robot urdf file'),                         
+                                            description='Absolute path to robot urdf file'), 
+        launch.actions.DeclareLaunchArgument(name='use_omni_wheels', default_value='False',
+                                            description='Flag to enable mecanum wheels'),
+        launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='False',
+                                            description='Flag to enable use_sim_time'),                          
         robot_state_publisher_node,    
         delayed_controller_manager,                                  
         joint_state_broadcaster_event_handler,
