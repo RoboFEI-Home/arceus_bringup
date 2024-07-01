@@ -14,6 +14,7 @@ def generate_launch_description():
     description_share = launch_ros.substitutions.FindPackageShare(package='arceus_description').find('arceus_description')
     default_model_path = os.path.join(description_share, 'src/urdf/arceus_description.urdf')
     default_rviz_config_path = os.path.join(description_share, 'rviz/urdf_config.rviz')
+    navigation_share = launch_ros.substitutions.FindPackageShare(package='arceus_navigation').find('arceus_navigation')
 
     robot_state_publisher_node = launch_ros.actions.Node(
         package='robot_state_publisher',
@@ -89,6 +90,21 @@ def generate_launch_description():
         )
     )
 
+    twist_mux_params = os.path.join(navigation_share, 'config/twist_mux.yaml')
+    twist_mux = Node(
+        package='twist_mux',
+        executable='twist_mux',
+        parameters=[twist_mux_params, {'use_sim_time': False}],
+        remappings=[('/cmd_vel_out', 'omnidirectional_controller/cmd_vel_unstamped')]
+    )
+
+    laser_filter_params = os.path.join(navigation_share, 'config/laser_filter.yaml')
+    laser_filter = Node(
+        package='laser_filters',
+        executable='scan_to_scan_filter_chain',
+        parameters=[laser_filter_params]
+    )
+
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='model', default_value=default_model_path,
                                             description='Absolute path to robot urdf file'), 
@@ -103,5 +119,7 @@ def generate_launch_description():
         joint_state_broadcaster_event_handler,
         omni_base_controller_event_handler,
         robot_localization_node_event_handler,
-        rviz_node_event_handler
+        rviz_node_event_handler,
+        twist_mux,
+        laser_filter
     ])
